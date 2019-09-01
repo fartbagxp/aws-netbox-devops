@@ -1,0 +1,20 @@
+- hosts: local
+  connection: local
+
+  vars_files:
+    - "vault/aws-config.yml"
+
+  roles:
+    - role: aws-user
+
+    - role: aws-launch
+      playbook_group: "tmp_ami_group"
+      ami_user: "{{ launch_user }}"
+      user_data: "{{ launch_user_init_script }}"
+
+- name: update all packages in a launched EC2 instance.
+  hosts: tmp_ami_group
+  become_user: root
+  become: true
+  roles:
+    - role: aws-ami

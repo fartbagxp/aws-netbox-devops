@@ -7,6 +7,9 @@ verify_ssl = true
 
 [packages]
 ansible = "*"
+boto3 = "*"
+awscli = "*"
+boto = "*"
 
 [requires]
 python_version = "3.7"

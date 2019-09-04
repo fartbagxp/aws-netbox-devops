@@ -48,4 +48,4 @@
 # pick a random user to use as the launch user, this may be a build server user in the future
 - name: export launch user
   set_fact:
-    launch_user: "{{ usernames.0 }}"
+    launch_user: "user1"

@@ -3,10 +3,10 @@
     name: "*"
     state: latest
 
-- name: install RHEL's Extra Package Repository
-  yum:
-    name: epel-release
-    state: latest
+# - name: install RHEL's Extra Package Repository
+#   yum:
+#     name: epel-release
+#     state: latest
 
 - name: set timezone
   file: src=/usr/share/zoneinfo/{{ timezone | default("America/New_York") }} dest=/etc/localtime owner=root group=root state=link force=true
@@ -26,11 +26,6 @@
   yum:
     name: libselinux-python
     state: present
-
-- name: install Google PAM
-  yum:
-    name: google-authenticator
-    state: latest
 
 - name: install yum-cron
   yum:

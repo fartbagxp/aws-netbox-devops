@@ -1,0 +1,114 @@
+- name: Create a Linux group for netbox
+  group:
+    name: netbox
+    state: present
+
+- name: Create a Linux user for netbox
+  user:
+    name: netbox
+    group: netbox
+    state: present
+
+- name: install python3
+  yum:
+    name: python3
+    state: latest
+
+- name: install python3 pip
+  yum:
+    name: python3-pip
+    state: latest
+
+- name: Add python3 as default python
+  lineinfile:
+    path: ~/.bashrc
+    line: alias python=python3
+    insertafter: alias.*
+
+- name: Add pip3 as default pip
+  lineinfile:
+    path: ~/.bashrc
+    line: alias pip=pip3
+    insertafter: alias.*
+
+- name: download netbox
+  get_url:
+    url: https://github.com/netbox-community/netbox/archive/v{{ netbox_version }}.tar.gz
+    dest: /home/ec2-user/netbox.tar.gz
+
+- name: extract netbox.tar.gz into /opt/netbox
+  unarchive:
+    src: /home/ec2-user/netbox.tar.gz
+    dest: /opt
+    remote_src: yes
+
+- name: build symlink
+  file:
+    src: /opt/netbox-{{ netbox_version }}/
+    dest: /opt/netbox
+    owner: netbox
+    state: link
+
+- name: install netbox requirements
+  pip:
+    requirements: /opt/netbox/requirements.txt
+    executable: pip3
+
+# - name: install ldap requirements
+#   pip:
+#     name:
+#       - ldap
+#       - django_auth_ldap
+#     executable: pip3
+#   when: env == 'prod'
+
+- name: copy netbox configuration file
+  template:
+    src: templates/configuration.j2
+    dest: /opt/netbox/netbox/netbox/configuration.py
+    owner: netbox
+    group: netbox
+
+# - name: copy ldap configuration file
+#   template:
+#     src: templates/ldap_config.py.j2
+#     dest: /opt/netbox/netbox/netbox/ldap_config.py
+#     owner: netbox
+#     group: netbox
+#   when: env == 'prod'
+
+- name: update settings.py file with settings that force session expiration
+  lineinfile:
+    path: /opt/netbox/netbox/netbox/settings.py
+    regexp: "SESSION_EXPIRE_AT_BROWSER_CLOSE"
+    line: "SESSION_EXPIRE_AT_BROWSER_CLOSE = getattr(configuration, 'SESSION_EXPIRE_AT_BROWSER_CLOSE', False)"
+
+- name: update settings.py file with settings that force session expiration
+  lineinfile:
+    path: /opt/netbox/netbox/netbox/settings.py
+    regexp: "SESSION_COOKIE_AGE"
+    line: "    SESSION_COOKIE_AGE = getattr(configuration, 'SESSION_COOKIE_AGE', 60 * 60 * 24 * 14)"
+
+- name: allow access to netbox dirs
+  file:
+    path: /opt/netbox-{{ netbox_version }}
+    owner: netbox
+    group: netbox
+    recurse: yes
+
+- name: collect static files
+  shell: python3 /opt/netbox/netbox/manage.py collectstatic --no-input
+  become: yes
+  become_user: netbox
+
+# - name: database migration
+#   shell: python3 /opt/netbox/netbox/manage.py migrate
+#   become: yes
+#   become_user: netbox
+
+- name: createsupseruser
+  shell: echo "from django.contrib.auth.models import User; User.objects.create_superuser('{{ auth.netbox_user }}', '{{ auth.netbox_email }}', '{{ auth.netbox_pass }}')" | python3 /opt/netbox/netbox/manage.py shell
+  become: yes
+  become_user: netbox
+  ignore_errors: yes
+  no_log: True

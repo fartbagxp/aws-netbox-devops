@@ -4,77 +4,8 @@
   gather_facts: false
   vars:
     key_name: ansible-netbox
-
-  tasks:
-    - name: Creating SSH Key
-      shell: |
-        ssh-keygen -b 4096 -t rsa -f ~/.ssh/{{ key_name }}.pem -q -N '' && \
-        chmod 0600 ~/.ssh/{{ key_name }}.pem.pub
-      args:
-        chdir: ~/.ssh/
-        creates: "{{ key_name }}.pem"
-
-    - name: Creating EC2 Key Pair
-      ec2_key:
-        name: "{{ key_name }}"
-        state: present
-        region: "{{ region }}"
-        key_material: "{{ item }}"
-      with_file: ~/.ssh/{{ key_name }}.pem.pub
-
-    - name: Evaluating the authentication agent & adding the key...
-      shell: |
-        eval "$(ssh-agent)"
-        ssh-agent bash
-        ssh-add ~/.ssh/{{ key_name }}.pem
-
-    - name: Creating Security Group
-      ec2_group:
-        name: netbox
-        description: SSH Access
-        state: present
-        region: "{{ region }}"
-        rules:
-          - proto: tcp
-            to_port: 22
-            from_port: 22
-            cidr_ip: 0.0.0.0/0
-        rules_egress:
-          - proto: all
-            cidr_ip: 0.0.0.0/0
-
-    - name: Launching EC2 Instance
-      ec2:
-        group: netbox
-        image: "{{ image }}"
-        instance_type: t3.small
-        instance_initiated_shutdown_behavior: terminate
-        key_name: "{{ key_name }}"
-        wait: yes
-        region: "{{ region }}"
-        state: present
-        volumes:
-          - device_name: /dev/xvda
-            delete_on_termination: true
-            volume_size: 32
-            volume_type: gp2
-        instance_tags:
-          Name: netbox
-      register: ec2
-
-    - name: Registering Host
-      add_host:
-        hostname: "{{ item.public_ip }}"
-        groupname: aws
-      with_items: "{{ ec2.instances }}"
-
-    - name: Waiting for SSH
-      wait_for:
-        host: "{{ item.public_ip }}"
-        port: 22
-        timeout: 120
-        state: started
-      with_items: "{{ ec2.instances }}"
+  roles:
+    - role: netbox-ami-setup
 
 - name: AWS
   user: ec2-user
@@ -85,37 +16,37 @@
   environment:
     LANG: en_US.UTF-8
     LC_ALL: en_US.UTF-8
+  vars:
+    netbox_version: 2.6.3
+    db_name: netbox
+    db_host: "127.0.0.1"
+    db_user: netbox
+    region: us-east-1
+    server_name: netbox.sample.com
+    # active_groups:
+    #   - "CN=IPAM ReadOnly,OU=Operations,DC=sample,DC=com"
+    #   - "CN=IPAM ReadWrite,OU=Operations,DC=sample,DC=com"
+    #   - "CN=IPAM Admin,OU=Operations,DC=sample,DC=com"
+    # staff_group: "CN=IPAM Admin,OU=Operations,DC=sample,DC=com"
+  pre_tasks:
+    - name: lookup credentials
+      set_fact:
+        auth:
+          db_pass: "kjjejciekcjle"
+          secret_key: "fdaeckasnckajsecer"
+          netbox_user: "username"
+          netbox_pass: "password"
+          netbox_email: "fartbagxp@gmail.com"
+  roles:
+    - role: aws-ami
+    - role: netbox
+    - role: nginx
+    - role: gunicorn
 
 - name: Teardown AWS
   hosts: localhost
   gather_facts: false
   vars:
     key_name: ansible-netbox
-
-  tasks:
-    - name: Terminating EC2 Instance
-      ec2:
-        wait: yes
-        state: absent
-        instance_ids: "{{ ec2.instance_ids }}"
-        region: "{{ region }}"
-
-    - name: Deleting Security Group
-      ec2_group:
-        name: Chromium
-        state: absent
-        region: "{{ region }}"
-
-    - name: Deleting EC2 Key Pair
-      ec2_key:
-        name: "{{ key_name }}"
-        state: absent
-        region: "{{ region }}"
-
-    - name: Deleting SSH Key
-      file:
-        path: "../{{ item }}"
-        state: absent
-      with_items:
-        - ~/.ssh/{{ key_name }}.pem.pub
-        - ~/.ssh/{{ key_name }}.pem
+  roles:
+    - role: netbox-ami-teardown

@@ -1,0 +1,13 @@
+- name: install nginx
+  shell: amazon-linux-extras install nginx{{ nginx_version }} -y
+  become: yes
+
+- name: copy nginx configuration file
+  template:
+    src: templates/nginx.j2
+    dest: /etc/nginx/nginx.conf
+
+- name: start nginx
+  service:
+    name: nginx
+    state: restarted

@@ -1,0 +1,69 @@
+- name: Creating SSH Key
+  shell: |
+    ssh-keygen -b 4096 -t rsa -f ~/.ssh/{{ key_name }}.pem -q -N '' && \
+    chmod 0600 ~/.ssh/{{ key_name }}.pem.pub
+  args:
+    chdir: ~/.ssh/
+    creates: "{{ key_name }}.pem"
+
+- name: Creating EC2 Key Pair
+  ec2_key:
+    name: "{{ key_name }}"
+    state: present
+    region: "{{ region }}"
+    key_material: "{{ item }}"
+  with_file: ~/.ssh/{{ key_name }}.pem.pub
+
+- name: Evaluating the authentication agent & adding the key...
+  shell: |
+    eval "$(ssh-agent)"
+    ssh-agent bash
+    ssh-add ~/.ssh/{{ key_name }}.pem
+
+- name: Creating Security Group
+  ec2_group:
+    name: netbox
+    description: SSH Access
+    state: present
+    region: "{{ region }}"
+    rules:
+      - proto: tcp
+        to_port: 22
+        from_port: 22
+        cidr_ip: 0.0.0.0/0
+    rules_egress:
+      - proto: all
+        cidr_ip: 0.0.0.0/0
+
+- name: Launching EC2 Instance
+  ec2:
+    group: netbox
+    image: "{{ image }}"
+    instance_type: t2.small
+    instance_initiated_shutdown_behavior: terminate
+    key_name: "{{ key_name }}"
+    wait: yes
+    region: "{{ region }}"
+    state: present
+    volumes:
+      - device_name: /dev/xvda
+        delete_on_termination: true
+        volume_size: 32
+        volume_type: gp2
+    instance_tags:
+      Name: netbox
+  register: ec2
+
+- name: Registering Host
+  add_host:
+    hostname: "{{ item.public_ip }}"
+    groupname: aws
+  with_items: "{{ ec2.instances }}"
+
+- name: Waiting for SSH
+  wait_for:
+    host: "{{ item.public_ip }}"
+    port: 22
+    timeout: 120
+    state: started
+  with_items: "{{ ec2.instances }}"

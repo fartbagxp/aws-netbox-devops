@@ -1,0 +1,26 @@
+- name: Terminating EC2 Instance
+  ec2:
+    wait: yes
+    state: absent
+    instance_ids: "{{ ec2.instance_ids }}"
+    region: "{{ region }}"
+
+- name: Deleting Security Group
+  ec2_group:
+    name: Chromium
+    state: absent
+    region: "{{ region }}"
+
+- name: Deleting EC2 Key Pair
+  ec2_key:
+    name: "{{ key_name }}"
+    state: absent
+    region: "{{ region }}"
+
+- name: Deleting SSH Key
+  file:
+    path: "../{{ item }}"
+    state: absent
+  with_items:
+    - ~/.ssh/{{ key_name }}.pem.pub
+    - ~/.ssh/{{ key_name }}.pem

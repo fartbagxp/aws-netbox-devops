@@ -1,41 +1,70 @@
-variable "AMI" {}
-variable "KeyName" {}
+variable "AMI" {
+}
+
+variable "KeyName" {
+}
 
 variable "PrivateSubnets" {
-  type = "list"
+  type = list(string)
 }
 
 variable "PublicSubnets" {
-  type = "list"
+  type = list(string)
 }
 
 variable "DatabaseSubnets" {
-  type = "list"
+  type = list(string)
 }
 
-variable "Environment" {}
-variable "SSLCertificate" {}
-variable "VPCId" {}
-variable "DBName" {}
-variable "DBUsername" {}
-variable "DBClass" {}
-variable "DBAllocatedStorage" {}
-variable "MultiAZ" {}
-variable "BackupRetentionPeriod" {}
-variable "S3Bucket" {}
-variable "InstanceType" {}
-variable "KMSKeyId" {}
+variable "Environment" {
+}
 
-variable "Region" {}
+variable "SSLCertificate" {
+}
 
-variable "Account" {}
+variable "VPCId" {
+}
+
+variable "DBName" {
+}
+
+variable "DBUsername" {
+}
+
+variable "DBClass" {
+}
+
+variable "DBAllocatedStorage" {
+}
+
+variable "MultiAZ" {
+}
+
+variable "BackupRetentionPeriod" {
+}
+
+variable "S3Bucket" {
+}
+
+variable "InstanceType" {
+}
+
+variable "KMSKeyId" {
+}
+
+variable "Region" {
+}
+
+variable "Account" {
+}
 
 variable "DomainControllers" {
-  type = "list"
+  type = list(string)
 }
 
 variable "AllowedIngress" {
-  type        = "list"
-  default     = "${var.AllowedIngress}"
+  type        = list(string)
+  default     = "$${var.AllowedIngress}"
   description = "List of hosts allowed to communicate with the Netbox ELB"
 }
+

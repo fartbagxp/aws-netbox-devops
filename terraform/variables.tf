@@ -64,7 +64,6 @@ variable "DomainControllers" {
 
 variable "AllowedIngress" {
   type        = list(string)
-  default     = "$${var.AllowedIngress}"
   description = "List of hosts allowed to communicate with the Netbox ELB"
 }
 

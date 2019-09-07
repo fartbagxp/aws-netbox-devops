@@ -36,6 +36,6 @@ DomainControllers = ["0.0.0.0/0"]
 
 AllowedIngress = ["0.0.0.0/0"]
 
-Region = "us-west-2"
+Region = "us-east-1"
 
 Account = "01234567890"

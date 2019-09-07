@@ -5,4 +5,6 @@ I took some inspirations from [jgcasd/aws-netbox-deployment](https://github.com/
 
 ## How to run
 
-`cd ansible && ansible-playbook -i inventory.ini playbooks/main.yml`
+Ansible: `cd ansible && ansible-playbook -i inventory.ini playbooks/main.yml`
+
+Terraform: `cd terraform && terraform apply --var-file="prod.tfvars"`
